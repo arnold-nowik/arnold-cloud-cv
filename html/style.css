@@ -129,6 +129,10 @@ a {
   .profile .picture-resume img {
     width: 80px;
   }
+  .profile .picture-resume span {
+    width: 90px;
+    height: 90px;
+  }
 }
 @media (max-width: 1200px) {
   .profile .picture-resume img {
