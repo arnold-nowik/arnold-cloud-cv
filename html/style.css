@@ -112,6 +112,13 @@ a {
 .profile .picture-resume img {
   border-radius: 50%;
   width: 130px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: auto;
+  outline: 15px solid #66cc99;
 }
 @media (max-width: 1500px) {
   .profile .picture-resume img {
