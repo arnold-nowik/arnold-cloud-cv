@@ -102,12 +102,17 @@ a {
   vertical-align: middle;
 }
 .profile .picture-resume span {
-  display: table-cell;
-  vertical-align: middle;
-  position: relative;
-  margin: 0 auto;
-  z-index: 10;
-  text-align: center;
+  width: 150px;
+  height: 150px;
+  background-color: #66cc99;
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  margin: auto;
 }
 .profile .picture-resume img {
   border-radius: 50%;
@@ -118,7 +123,7 @@ a {
   bottom: 0;
   left: 0;
   margin: auto;
-  outline: 15px solid #66cc99;
+
 }
 @media (max-width: 1500px) {
   .profile .picture-resume img {
