@@ -12,8 +12,11 @@ body {
   font-family: "Open Sans", sans-serif;
   font-size: 16px;
   line-height: 1.5em;
+  margin: 0;
 }
-
+ul, ol {
+  padding: 0;
+}
 a {
   color: #66cc99;
   text-decoration: none;
@@ -33,12 +36,21 @@ a {
   font-weight: 400;
 }
 
+.bold-white {
+  color: #F0FFFF;
+  font-weight: 200;
+}
+
 .resume-wrapper {
   position: relative;
   text-align: center;
   height: 100%;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
 }
-
 .container {
   min-height: 600px;
 }
@@ -65,17 +77,17 @@ a {
   color: #4a4e51;
   text-transform: uppercase;
   line-height: 1em;
-  padding-top: 40px;
+  /*padding-top: 40px;*/
 }
 @media (max-width: 1200px) {
   .profile h1 {
-    padding-top: 20px;
+    /*padding-top: 20px;*/
   }
 }
 @media (max-width: 450px) {
   .profile h1 {
     font-size: 1.8em;
-    padding-top: 20px;
+    /*padding-top: 20px;*/
   }
 }
 .profile li {
@@ -159,17 +171,17 @@ a {
   }
 }
 .profile .contact-info {
-  margin-top: 100px;
+  margin-top: 50px;
   font-weight: 300;
 }
 @media (max-width: 1200px) {
   .profile .contact-info {
-    margin-top: 70px;
+    margin-top: 35px;
   }
 }
 @media (max-width: 450px) {
   .profile .contact-info {
-    margin-top: 50px;
+    margin-top: 25px;
   }
 }
 .profile .list-titles {
@@ -188,19 +200,19 @@ a {
 .profile .contact-presentation {
   text-align: left;
   font-weight: 300;
-  margin-top: 100px;
-  margin-bottom: 100px;
+  margin-top: 50px;
+  margin-bottom: 50px;
 }
 @media (max-width: 1200px) {
   .profile .contact-presentation {
-    margin-top: 70px;
-    margin-bottom: 70px;
+    margin-top: 35px;
+    margin-bottom: 35px;
   }
 }
 @media (max-width: 850px) {
   .profile .contact-presentation {
-    margin-top: 50px;
-    margin-bottom: 50px;
+    margin-top: 25px;
+    margin-bottom: 25px;
   }
 }
 .profile svg {
@@ -233,7 +245,7 @@ a {
   text-align: left;
   text-transform: uppercase;
   font-size: 1.2em;
-  margin-bottom: 20px;
+  margin-bottom: 40px;
   font-weight: 400;
 }
 .experience .company-wrapper {
@@ -289,6 +301,9 @@ a {
   font-weight: 300;
   margin-bottom: 20px;
 }
+.section-wrapper.section-wrapper--full {
+  width: 100%;
+}
 @media (max-width: 450px) {
   .section-wrapper {
     width: 100%;
@@ -326,7 +341,7 @@ a {
   bottom: 0;
 }
 .section-wrapper .skill-percentage:nth-child(1)::before {
-  width: 80%;
+  width: 90%;
   -webkit-animation: skill_1 0.6s ease;
           animation: skill_1 0.6s ease;
 }
@@ -336,22 +351,22 @@ a {
           animation: skill_2 0.6s ease;
 }
 .section-wrapper .skill-percentage:nth-child(3)::before {
-  width: 50%;
+  width: 75%;
   -webkit-animation: skill_3 0.6s ease;
           animation: skill_3 0.6s ease;
 }
 .section-wrapper .skill-percentage:nth-child(4)::before {
-  width: 60%;
+  width: 75%;
   -webkit-animation: skill_4 0.6s ease;
           animation: skill_4 0.6s ease;
 }
 .section-wrapper .skill-percentage:nth-child(5)::before {
-  width: 70%;
+  width: 60%;
   -webkit-animation: skill_5 0.6s ease;
           animation: skill_5 0.6s ease;
 }
 .section-wrapper .skill-percentage:nth-child(6)::before {
-  width: 70%;
+  width: 40%;
   -webkit-animation: skill_6 0.6s ease;
           animation: skill_6 0.6s ease;
 }
@@ -366,7 +381,7 @@ a {
     width: 0%;
   }
   to {
-    width: 80%;
+    width: 90%;
   }
 }
 
@@ -375,7 +390,7 @@ a {
     width: 0%;
   }
   to {
-    width: 80%;
+    width: 90%;
   }
 }
 @-webkit-keyframes skill_2 {
@@ -399,7 +414,7 @@ a {
     width: 0%;
   }
   to {
-    width: 50%;
+    width: 75%;
   }
 }
 @keyframes skill_3 {
@@ -407,7 +422,7 @@ a {
     width: 0%;
   }
   to {
-    width: 50%;
+    width: 75%;
   }
 }
 @-webkit-keyframes skill_4 {
@@ -415,7 +430,7 @@ a {
     width: 0%;
   }
   to {
-    width: 60%;
+    width: 75%;
   }
 }
 @keyframes skill_4 {
@@ -423,7 +438,7 @@ a {
     width: 0%;
   }
   to {
-    width: 60%;
+    width: 75%;
   }
 }
 @-webkit-keyframes skill_5 {
@@ -431,7 +446,7 @@ a {
     width: 0%;
   }
   to {
-    width: 70%;
+    width:60%;
   }
 }
 @keyframes skill_5 {
@@ -439,7 +454,7 @@ a {
     width: 0%;
   }
   to {
-    width: 70%;
+    width: 60%;
   }
 }
 @-webkit-keyframes skill_6 {
@@ -447,7 +462,7 @@ a {
     width: 0%;
   }
   to {
-    width: 70%;
+    width: 40%;
   }
 }
 @keyframes skill_6 {
@@ -455,7 +470,7 @@ a {
     width: 0%;
   }
   to {
-    width: 70%;
+    width: 40%;
   }
 }
 @-webkit-keyframes skill_7 {
