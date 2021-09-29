@@ -294,11 +294,8 @@ Resources:
 
 Outputs:
   Bucket:
-    Description: "S3 Bucket Name"
+    Description: "Please empty this S3 bucket before deleting the CloudFormation stack!"
     Value: !Ref S3Bucket
-  DistributionId:
-    Description: "CloudFront Distribution ID"
-    Value: !Ref CloudFrontDistribution
-  Domain:
+  StaticWebsiteURL:
     Description: "Cloudfront Domain"
     Value: !GetAtt CloudFrontDistribution.DomainName
