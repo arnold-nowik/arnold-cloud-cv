@@ -1,0 +1,304 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Resume hosted as a static website using S3 and CloudFront"
+
+Resources:
+
+  # S3 Bucket Configuration
+  S3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: "index.html"
+        ErrorDocument: "index.html"
+
+  # Configure OAI
+  CloudFrontOriginAccessIdentity:
+    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Ref S3Bucket
+
+  # Configure the bucket policy to only allow access from CF
+  ReadPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          - Action: "s3:GetObject"
+            Effect: Allow
+            Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
+            Principal:
+              CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
+
+  ### Configure CloudFront ###
+
+  CloudFrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        CustomErrorResponses:
+          - ErrorCode: 403 # not found
+            ResponseCode: 404
+            ResponsePagePath: "/index.html"
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          DefaultTTL: 3600 # in seconds
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            QueryString: false
+          MaxTTL: 86400 # in seconds
+          MinTTL: 60 # in seconds
+          TargetOriginId: S3Resume
+          ViewerProtocolPolicy: "redirect-to-https"
+        DefaultRootObject: "/index.html"
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+          - DomainName: !GetAtt "S3Bucket.DomainName"
+            Id: S3Resume
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
+        PriceClass: "PriceClass_All"
+
+### VPC and Subnets Configuration ###
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 172.28.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+      - Key: Name
+        Value: arnold-vpc-igw
+
+  InternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  RouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: arnold-vpc-rt
+
+  RouteTableDefaultIPv4:
+    Type: 'AWS::EC2::Route'
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId:
+        Ref: RouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId:
+        Ref: InternetGateway
+
+  RouteTableAssociationSubA:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetA
+      RouteTableId:
+        Ref: RouteTable
+
+  RouteTableAssociationWebB:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetB
+      RouteTableId:
+        Ref: RouteTable
+
+  SubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: 172.28.0.0/20
+      MapPublicIpOnLaunch: true
+
+  SubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      CidrBlock: 172.28.16.0/20
+      MapPublicIpOnLaunch: true
+
+### FARGATE Configuration ###
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: ArnoldCloudCVCluster
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn: S3Bucket
+    Properties:
+      Family: ArnoldCloudCVTaskDefinition
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 256
+      Memory: 0.5GB
+      ExecutionRoleArn: !Ref ExecutionRole
+      TaskRoleArn: !Ref TaskRole
+      ContainerDefinitions:
+        -
+          Name: ArnoldCloudCVContainer
+          Image: f828/ubuntu-awscli:latest
+          EntryPoint:
+            - "bash"
+            - "-c"
+          Command:
+            - !Sub "curl https://raw.githubusercontent.com/arnold-nowik/arnold-cloud-cv/master/html/index.html -o index.html && curl https://raw.githubusercontent.com/arnold-nowik/arnold-cloud-cv/master/html/style.css -o style.css && aws s3 cp index.html s3://${S3Bucket}/ && aws s3 cp style.css s3://${S3Bucket}/"
+
+  # A role needed by ECS
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ArnoldCloudCVExecutionRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+
+  # A role for the container that will allow to put files in S3 bucket
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ArnoldCloudCVTaskRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: Allow-S3-Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
+
+  ContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ArnoldCloudCVSecurityGroup
+      VpcId: !Ref VPC
+
+  ### Event for Triggering ECS Task ###
+
+  # IAM Role to allow CloudWatch Events to trigger ECS task
+  IAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Description: Allow CloudWatch Events to trigger ECS task
+      Policies:
+        - PolicyName: Allow-ECS-Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ecs:*'
+                  - 'iam:PassRole'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+      RoleName: ArnoldCVTriggerECSTask
+
+  # Dummy SSM parameter, whose creation triggers Event
+  DummyParameter:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: ArnoldCloudCVCFDistributionURL
+      Type: String
+      Value:
+        'Fn::GetAtt': CloudFrontDistribution.DomainName
+    DependsOn: TaskSchedule
+
+  # CloudWatch Event that triggers ECS Task execution
+  TaskSchedule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      Description: Trigger ECS task upon creation of CloudFront Distribution
+      Name: ArnoldCloudCVEventRule
+      RoleArn:
+        'Fn::GetAtt': IAMRole.Arn
+      EventPattern:
+        source:
+          - aws.ssm
+        detail-type:
+          - Parameter Store Change
+        resources:
+          - 'Fn::Sub': >-
+              arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ArnoldCloudCVCFDistributionURL
+        detail:
+          operation:
+            - Create
+          name:
+            - ArnoldCloudCVCFDistributionURL
+          type:
+            - String
+      State: ENABLED
+      Targets:
+        - Arn:
+            'Fn::GetAtt': Cluster.Arn
+          Id: ArnoldCloudCVCluster
+          RoleArn:
+            'Fn::GetAtt': IAMRole.Arn
+          EcsParameters:
+            LaunchType: FARGATE
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: ENABLED
+                SecurityGroups:
+                  - !Ref ContainerSecurityGroup
+                Subnets:
+                  - !Ref SubnetA
+            PlatformVersion: LATEST
+            TaskDefinitionArn: !Ref TaskDefinition
+
+Outputs:
+  Bucket:
+    Description: "S3 Bucket Name"
+    Value: !Ref S3Bucket
+  DistributionId:
+    Description: "CloudFront Distribution ID"
+    Value: !Ref CloudFrontDistribution
+  Domain:
+    Description: "Cloudfront Domain"
+    Value: !GetAtt CloudFrontDistribution.DomainName
